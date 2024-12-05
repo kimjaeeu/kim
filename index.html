@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>딸기와 오이 병충해 분류</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+        .result {
+            font-size: 1.5em;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>딸기와 오이 병충해 분류기</h1>
+    <input type="file" accept="image/*" id="imageInput" />
+    <div class="result" id="result">결과가 여기에 표시됨</div>
+
+    <script>
+        // Teachable Machine 모델 URL (URL 수정 필수)
+        const modelURL = "https://teachablemachine.withgoogle.com/models/B_woY7yvpW/";
+
+        let model;
+
+        // 모델 로드
+        async function loadModel() {
+            try {
+                model = await tmImage.load(modelURL + "model.json", modelURL + "metadata.json");
+                console.log("모델이 성공적으로 로드됨");
+            } catch (error) {
+                console.error("모델 로드 실패:", error);
+            }
+        }
+
+        // 이미지 분류
+        async function classifyImage(image) {
+            try {
+                const prediction = await model.predict(image);
+                let highestProbability = 0;
+                let resultText = "";
+
+                prediction.forEach(p => {
+                    if (p.probability > highestProbability) {
+                        highestProbability = p.probability;
+                        resultText = p.className;
+                    }
+                });
+
+                return resultText;
+            } catch (error) {
+                console.error("분류 중 오류 발생:", error);
+                return "오류 발생";
+            }
+        }
+
+        // 음성 출력
+        function speak(text) {
+            const speech = new SpeechSynthesisUtterance(text);
+            speech.lang = "ko-KR";
+            window.speechSynthesis.speak(speech);
+        }
+
+        // 이미지 파일 처리
+        document.getElementById("imageInput").addEventListener("change", async (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const img = document.createElement("img");
+                img.src = URL.createObjectURL(file);
+                img.onload = async () => {
+                    console.log("이미지가 로드됨:", img.src);
+                    const result = await classifyImage(img);
+                    const resultElement = document.getElementById("result");
+
+                    if (result.includes("오이")) {
+                        resultElement.textContent = "오이에 병충해가 생겼습니다.";
+                        speak("오이에 병충해가 생겼습니다.");
+                    } else if (result.includes("딸기")) {
+                        resultElement.textContent = "딸기에 병충해가 생겼습니다.";
+                        speak("딸기에 병충해가 생겼습니다.");
+                    } else {
+                        resultElement.textContent = "병충해가 발견되지 않았습니다.";
+                        speak("병충해가 발견되지 않았습니다.");
+                    }
+                };
+            }
+        });
+
+        // 초기화
+        loadModel();
+    </script>
+</body>
+</html>
